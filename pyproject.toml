@@ -1,0 +1,41 @@
+[project]
+name = "bissap"
+version = "1.0.0"
+dependencies = [
+    "click",
+    "colorlog",
+    "sqlalchemy",
+    "frozendict",
+    "rich",
+    "openpyxl",
+]
+
+[project.scripts]
+bissap = "bissap.commands:main"
+
+[tool.setuptools]
+ext-modules = [
+  {name = "bissap.pysapcompress", sources = [
+    "src/bissap/pysapcompress/pysapcompress.cpp",
+    "src/bissap/pysapcompress/vpa105CsObjInt.cpp",
+    "src/bissap/pysapcompress/vpa106cslzc.cpp",
+    "src/bissap/pysapcompress/vpa107cslzh.cpp",
+    "src/bissap/pysapcompress/vpa108csulzh.cpp",
+    ]}
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.sql"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pyright]
+exclude = [
+    "**/__pycache__",
+    "**/.*",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
