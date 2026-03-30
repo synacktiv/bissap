@@ -4,6 +4,8 @@ from typing import Callable
 
 import click
 from click import Group
+from typing_extensions import override
+
 from bissap.authorization import (
     RFC_NAME,
     RFC_TYPE,
@@ -14,7 +16,6 @@ from bissap.authorization import (
     AuthorizationObject,
 )
 from bissap.globals import json_output, json_print
-from typing_extensions import override
 
 
 class AliasedGroup(click.Group):

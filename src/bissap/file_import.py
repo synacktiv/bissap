@@ -174,6 +174,10 @@ def import_from_tsv(input: Path, table_name: str):
         reader = csv.reader(f, delimiter='\t')
 
         first_line = next(reader)
+        # Handle BOM
+        if first_line[0].startswith('\xef\xbb\xbf'):
+            first_line[0] = first_line[0][3:]
+
         # If importing from SE16 / Data Browser, the file starts by the table name.
         if first_line and first_line[0] == 'Table:':
             expected_table_name = first_line[-1]
@@ -209,7 +213,6 @@ def import_from_tsv(input: Path, table_name: str):
         _ = next(reader)
 
         for row in reader:
-            print(row)
             cells_to_skip = list(tabs_per_columns)
 
             values: list[str] = []
