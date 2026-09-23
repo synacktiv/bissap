@@ -32,19 +32,23 @@ TABLES_TO_COLLECT = [
     'UST12',
 ]
 
-SQL_CMD = '\n'.join(
+SYBASE_SQL_CMD = '\n'.join(
     f'SELECT "{table}"\nSELECT * FROM {table}' for table in TABLES_TO_COLLECT
 )
 
 SYBASE_CMD = f"""isql -X -w9999999999 -s'|' -U$USER -P$PASSWORD -H$HOST -S$SYSTEM -o /tmp/dump_bissap.csv << EOF
 SET NOCOUNT ON
-{SQL_CMD}
+{SYBASE_SQL_CMD}
 GO
 EOF"""
 
+HANA_SQL_CMD = '\n'.join(
+    f"SELECT '{table}' FROM DUMMY\nSELECT * FROM {table}" for table in TABLES_TO_COLLECT
+)
+
 HANA_CMD = f"""hdbsql -b all -F'|' -d$SYSTEM -n$HOST -u$USER -p$PASSWORD -o /tmp/dump_bissap.csv << EOF
 
-{SQL_CMD}
+{HANA_SQL_CMD}
 EOF"""
 
 

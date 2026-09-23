@@ -4,6 +4,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 import openpyxl
+from rich.progress import track
 
 from bissap.db import con, cursor, does_table_exist
 from bissap.logging import get_logger
@@ -24,42 +25,71 @@ KNOWN_PRIMARY_KEYS = {
 }
 
 
-def handle_sybase_row(row: list[str]):
+def clean_row(row: list[str]):
     row = row[1:-1]
-    return [cell.rstrip(' ') for cell in row]
+    return [cell.strip(' \'"') for cell in row]
 
 
 def read_csv(input: Path) -> Generator[list[str], None, None]:
     try:
+        # Get the number of lines first, to track the progress
+        with open(input, 'r', encoding='ISO8859') as f:
+            lines = sum(1 for _l in f)
+
         # if it fails here, try to remove the encoding or specify UTF-8
         with open(input, 'r', encoding='ISO8859') as f:
-            tablereader = csv.reader(
-                f, delimiter='|', escapechar='\\', doublequote=False
+            tablereader = track(
+                csv.reader(f, delimiter='|', escapechar='\\', doublequote=False),
+                total=lines,
             )
 
             # Parse the first row to check if it is a Sybase or a HANA dump.
             first_row = next(tablereader)
-            is_sybase = first_row[0] == first_row[-1] == '' and len(first_row) == 3
+            second_row = next(tablereader)
 
-            if not is_sybase:
+            is_complicated = len(first_row) == 3 and first_row[0] == first_row[-1] == ''
+
+            if not is_complicated:
                 yield first_row
+                yield second_row
                 yield from tablereader
+                return
 
-            next(tablereader)
-            yield handle_sybase_row(next(tablereader))
-            yield handle_sybase_row(next(tablereader))
-            next(tablereader)
+            # Check whether there is a delimiter (e.g. -------) between the columns and the values.
+            # In the first rows, there is a simple query that return itself (the first table's name)
+            # This happens in some version of HANA DB
+            has_delimiter = clean_row(first_row) == clean_row(second_row)
 
+            if has_delimiter:
+                yield clean_row(first_row)
+                yield clean_row(next(tablereader))
+            else:
+                yield clean_row(next(tablereader))  # The table name, as the value
+                yield clean_row(next(tablereader))  # The columns of the query
+                next(tablereader)
+
+            prev_row = None
             for row in tablereader:
-                row = handle_sybase_row(row)
+                row = clean_row(row)
 
-                if len(row) == 1 and all(c == ' ' for c in row[0]):
+                # In Sybase, the table name is the result of a `SELECT 'NAME'` and is formated such that the column name is empty, then a delimiter and the result.
+                # Here, we skip the delimiter of both SELECT (the table names and its values)
+                if (
+                    not has_delimiter
+                    and len(row) == 1
+                    and all(c == ' ' for c in row[0])
+                ):
                     next(tablereader)
-                    yield handle_sybase_row(next(tablereader))  # Table name
-                    yield handle_sybase_row(next(tablereader))  # Columns
+                    yield clean_row(next(tablereader))  # Table name
+                    yield clean_row(next(tablereader))  # Columns
                     next(tablereader)
+                elif has_delimiter and prev_row == row:
+                    pass
                 else:
                     yield row
+
+                prev_row = row
+
     except StopIteration:
         return
 
@@ -83,6 +113,7 @@ def import_from_csv(input: Path):
                 except sqlite3.OperationalError:
                     log.warning(f'Invalid row: {row}. Skipping it.')
     finally:
+        log.info('Finished importing the data.')
         con().commit()
 
     _denormalize_user_profiles()
