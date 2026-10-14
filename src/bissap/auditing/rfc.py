@@ -1,14 +1,24 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from typing_extensions import override
 
 from bissap.auditing.exploit_step import ExploitStep
-from bissap.authorization import ACTVT, RFC_NAME, S_RFC, AuthorizationObject
+from bissap.authorization import (
+    ACTVT,
+    OBJTYPE,
+    RFC_NAME,
+    S_DEVELOP,
+    S_RFC,
+    AuthorizationObject,
+)
 
 
 @dataclass(frozen=True)
 class Rfc(ExploitStep):
     authorization: AuthorizationObject
+    additionnal_authorizations: frozenset[AuthorizationObject] = field(
+        default_factory=frozenset
+    )
 
     def __post_init__(self):
         assert self.authorization.name == 'S_RFC'
@@ -27,15 +37,35 @@ class Rfc(ExploitStep):
         return next(f.value for f in self.authorization.fields if f.name == 'RFC_NAME')
 
     @classmethod
-    def from_rfc_name(cls, rfc_name: str):
-        return cls(S_RFC({RFC_NAME(rfc_name), ACTVT('16')}))
+    def from_rfc_name(
+        cls,
+        rfc_name: str,
+        additionnal_authorizations: frozenset[AuthorizationObject] = frozenset(),
+    ):
+        return cls(S_RFC({RFC_NAME(rfc_name), ACTVT('16')}), additionnal_authorizations)
 
     @override
     def is_usable_by(self, profiles: set[str]):
-        return self.authorization.profiles_has_authorization(profiles)
+        return self.authorization.profiles_has_authorization(profiles) and all(
+            auth.profiles_has_authorization(profiles)
+            for auth in self.additionnal_authorizations
+        )
 
 
 _rfc = Rfc.from_rfc_name
+
+
+# RFC_ABAP_INSTALL_AND_RUN generates and runs arbitrary ABAP code, which also
+# requires the authorization to create a program (S_DEVELOP).
+RFC_ABAP_INSTALL_AND_RUN = _rfc(
+    'RFC_ABAP_INSTALL_AND_RUN',
+    frozenset({S_DEVELOP({OBJTYPE('PROG'), ACTVT('01')})}),
+)
+
+
+# The BAPIs used by SU01 to assign profiles/roles can also be called directly through RFC.
+BAPI_USER_PROFILES_ASSIGN = _rfc('BAPI_USER_PROFILES_ASSIGN')
+BAPI_USER_ACTGROUPS_ASSIGN = _rfc('BAPI_USER_ACTGROUPS_ASSIGN')
 
 
 RFC_READ_TABLE = _rfc('RFC_READ_TABLE')

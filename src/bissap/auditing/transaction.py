@@ -80,13 +80,19 @@ RZ10 = _transaction('RZ10', 'Maintain Profile Parameters')
 RZ11 = _transaction('RZ11', 'Profile Parameter Maintenance')
 LXE_MASTER = _transaction('LXE_MASTER', 'Translation Administration')
 SXDA_TOOLS = _transaction('SXDA_TOOLS', 'DX Workbench: tools')
+SM30 = _transaction('SM30', 'Maintain Table Views')
+SM31 = _transaction('SM31', 'Maintain Table Views')
 
 TRANSACTION_EXECUTE_JOB = {SM36, SM37, SM49}
 
 # See https://www.aglea.com/en/blog/se16-in-sap for more examples of transactions that can read a table.
 TRANSACTION_READ_TABLE = {SE16, SE16H, SE16N, SQVI}
 
+TRANSACTION_WRITE_TABLE = {SE16N, SM30, SM31}
+
 TRANSACTION_DOWNLOAD_FILE = {CG3Y, SXDA_TOOLS}
+
+TRANSACTION_MAINTAIN_USER = {SU01, SU10}
 
 JUICY_TRANSACTIONS = {
     SE38,

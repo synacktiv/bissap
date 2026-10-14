@@ -24,6 +24,11 @@ SENSITIVE_TABLES = {
     'T012O',
     'BNKA',
     'TIBAN',
+    # Credentials and keys
+    'SSF_PSE_D',
+    'RFCDES',
+    'RSECTAB',
+    'DBCON',
 }
 
 

@@ -67,7 +67,7 @@ def _display_results(
         if brief:
             details = f'({", ".join([tr.tcode for tr in juicy_transactions])})'
         else:
-            details = 'See methodologies/SAP/README.rst for details.'
+            details = ''
         print(
             f'{object_name} can execute {len(juicy_transactions)} "juicy" transactions. {details}'
         )
